@@ -2,7 +2,6 @@
 
 A modern web application that uses AWS Rekognition to track eye movements and head pose in real-time. This application is perfect for educational settings, research, or any scenario where monitoring attention and engagement is important.
 
-![Eye Tracking Analytics](https://via.placeholder.com/800x400?text=Eye+Tracking+Analytics)
 
 ## Features
 

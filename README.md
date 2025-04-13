@@ -134,5 +134,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contact
 
 Your Name - [Mohsin Iqbal](https://linkedin.com/in/mohsin-iqbal-424336237) - mohsiniqbal826635@gmail.com
-
-Project Link: [https://github.com/mohsin013/eye-tracking](https://github.com/yourusername/eye-tracking) 

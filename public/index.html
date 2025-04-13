@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eye Tracking Analytics</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --primary-color: #4a6bff;
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+      --light-bg: #f8f9fa;
+      --dark-bg: #343a40;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+      padding-bottom: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+    }
+    
+    .app-header {
+      background: linear-gradient(135deg, var(--primary-color), #6a8dff);
+      color: white;
+      padding: 0.75rem 0;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      border: none;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    
+    .card-header {
+      background-color: white;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 0.75rem 1rem;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
+    
+    #video-container, #canvas-container {
+      position: relative;
+      max-width: 50%;
+      margin: 0 auto;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    #video, #canvas {
+      width: 100%;
+      background-color: #000;
+      border-radius: 8px;
+    }
+    
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+    
+    .marker {
+      position: absolute;
+      border: 2px solid var(--primary-color);
+      background-color: rgba(74, 107, 255, 0.2);
+      border-radius: 4px;
+    }
+    
+    .arrow {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      z-index: 10;
+    }
+    
+    .loader {
+      display: none;
+      margin-top: 10px;
+    }
+    
+    .result-section {
+      margin-top: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      background-color: white;
+    }
+    
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      font-size: 0.9rem;
+    }
+    
+    .metric:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .metric-value {
+      font-weight: 600;
+    }
+    
+    .alert {
+      display: none;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    
+    pre {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn {
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+      background-color: #3a5bef;
+      border-color: #3a5bef;
+    }
+    
+    .btn-success {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    
+    .btn-danger {
+      background-color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+    
+    .btn-outline-secondary {
+      border-color: #ced4da;
+      color: #6c757d;
+    }
+    
+    .btn-outline-secondary:hover {
+      background-color: #f8f9fa;
+      color: #495057;
+    }
+    
+    .tracking-status {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    
+    .status-active {
+      background-color: var(--success-color);
+      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+    }
+    
+    .status-inactive {
+      background-color: #dc3545;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+    }
+    
+    .log-entry {
+      padding: 6px 10px;
+      margin-bottom: 3px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    
+    .log-entry.info {
+      background-color: #e9ecef;
+    }
+    
+    .log-entry.success {
+      background-color: rgba(40, 167, 69, 0.1);
+      color: #1e7e34;
+    }
+    
+    .log-entry.warning {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: #856404;
+    }
+    
+    .log-entry.danger {
+      background-color: rgba(220, 53, 69, 0.1);
+      color: #721c24;
+    }
+    
+    .log-timestamp {
+      font-size: 0.75rem;
+      color: #6c757d;
+      margin-right: 6px;
+    }
+    
+    .stats-card {
+      text-align: center;
+      padding: 1rem;
+      border-radius: 10px;
+      background-color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1rem;
+    }
+    
+    .stats-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0.25rem 0;
+    }
+    
+    .stats-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    
+    .chart-container {
+      height: 150px;
+      margin-top: 0.5rem;
+    }
+    
+    .settings-panel {
+      background-color: white;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .form-range::-webkit-slider-thumb {
+      background: var(--primary-color);
+    }
+    
+    .form-range::-moz-range-thumb {
+      background: var(--primary-color);
+    }
+    
+    .form-check-input:checked {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .form-check-label {
+      font-size: 0.85rem;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      margin-bottom: 0.5rem;
+    }
+    
+    h5 {
+      font-size: 1rem;
+    }
+    
+    h6 {
+      font-size: 0.9rem;
+    }
+    
+    .mb-3 {
+      margin-bottom: 0.75rem !important;
+    }
+    
+    .mt-4 {
+      margin-top: 1rem !important;
+    }
+    
+    .mt-3 {
+      margin-top: 0.75rem !important;
+    }
+    
+    .mt-2 {
+      margin-top: 0.5rem !important;
+    }
+    
+    .mb-2 {
+      margin-bottom: 0.5rem !important;
+    }
+    
+    .mb-1 {
+      margin-bottom: 0.25rem !important;
+    }
+    
+    .p-3 {
+      padding: 0.75rem !important;
+    }
+    
+    .p-2 {
+      padding: 0.5rem !important;
+    }
+    
+    #log-container {
+      max-height: 200px;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 15px;
+      }
+      
+      .app-header {
+        padding: 0.5rem 0;
+        margin-bottom: 1rem;
+      }
+      
+      .card-body {
+        padding: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1 class="mb-0 fs-4">Eye Tracking Analytics</h1>
+        <div class="d-flex align-items-center">
+          <span class="tracking-status status-inactive" id="tracking-indicator"></span>
+          <span id="tracking-status-text" class="fs-6">Tracking Inactive</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Camera Feed</h5>
+            <div class="btn-group">
+              <button id="capture-btn" class="btn btn-sm btn-primary">
+                <i class="bi bi-camera"></i> Capture
+              </button>
+              <button id="start-tracking-btn" class="btn btn-sm btn-success">
+                <i class="bi bi-play-fill"></i> Start
+              </button>
+              <button id="stop-tracking-btn" class="btn btn-sm btn-danger" disabled>
+                <i class="bi bi-stop-fill"></i> Stop
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-2">
+            <div id="video-container">
+              <video id="video" autoplay playsinline></video>
+              <div id="camera-overlay" class="overlay"></div>
+            </div>
+            <div id="canvas-container" class="mt-2" style="display: none;">
+              <canvas id="canvas"></canvas>
+              <div id="result-overlay" class="overlay"></div>
+            </div>
+            <div id="loader" class="loader text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 mb-0 fs-6">Analyzing with AWS Rekognition...</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Settings</h5>
+          </div>
+          <div class="card-body p-2">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-2">
+                  <label for="tracking-interval" class="form-label">Tracking Interval (ms)</label>
+                  <input type="range" class="form-range" id="tracking-interval" min="1000" max="10000" step="500" value="3000">
+                  <div class="d-flex justify-content-between">
+                    <small class="fs-7">1s</small>
+                    <small id="interval-value" class="fs-7">3s</small>
+                    <small class="fs-7">10s</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-2">
+                  <label for="confidence-threshold" class="form-label">Confidence Threshold (%)</label>
+                  <input type="range" class="form-range" id="confidence-threshold" min="50" max="100" step="5" value="70">
+                  <div class="d-flex justify-content-between">
+                    <small class="fs-7">50%</small>
+                    <small id="confidence-value" class="fs-7">70%</small>
+                    <small class="fs-7">100%</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="auto-start" checked>
+                  <label class="form-check-label" for="auto-start">
+                    Auto-start camera
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="show-overlay" checked>
+                  <label class="form-check-label" for="show-overlay">
+                    Show overlay
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="save-data">
+                  <label class="form-check-label" for="save-data">
+                    Save data
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div id="results-container" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Analysis Results</h5>
+            </div>
+            <div class="card-body p-2">
+              <div id="alert-success" class="alert alert-success" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Looking at screen!</strong> The student appears to be properly engaged.
+              </div>
+              <div id="alert-warning" class="alert alert-warning" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Warning:</strong> <span id="warning-reason"></span>
+              </div>
+              <div id="alert-danger" class="alert alert-danger" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Not looking at screen!</strong> <span id="danger-reason"></span>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <h6 class="mb-2">Head Pose</h6>
+                  <div class="result-section">
+                    <div class="metric">
+                      <span>Yaw (left/right):</span>
+                      <span id="head-yaw" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                      <span>Pitch (up/down):</span>
+                      <span id="head-pitch" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                      <span>Roll (tilt):</span>
+                      <span id="head-roll" class="metric-value">-</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <h6 class="mb-2">Eye Direction</h6>
+                  <div class="result-section">
+                    <div class="metric">
+                      <span>Yaw (left/right):</span>
+                      <span id="eye-yaw" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                      <span>Pitch (up/down):</span>
+                      <span id="eye-pitch" class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                      <span>Confidence:</span>
+                      <span id="eye-confidence" class="metric-value">-</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h6 class="mb-0">Raw Response Data</h6>
+                  <button id="toggle-raw" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-code-slash"></i> Show/Hide
+                  </button>
+                </div>
+                <pre id="raw-data" style="display: none;"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Tracking Log</h5>
+          </div>
+          <div class="card-body p-2">
+            <div id="log-container" style="max-height: 200px; overflow-y: auto;">
+              <div id="tracking-log"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-light py-2 mt-3">
+    <div class="container text-center">
+      <p class="mb-0 text-muted fs-7">Eye Tracking Analytics &copy; 2023 | Powered by AWS Rekognition</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
